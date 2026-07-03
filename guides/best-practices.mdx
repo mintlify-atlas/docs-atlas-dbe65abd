@@ -1,5 +1,5 @@
 ---
-title: "Chromologger Best Practices and Patterns"
+title: "Chromologger Best Practices for Python Applications"
 sidebarTitle: "Best Practices"
 description: "Recommended patterns for resource management, log level discipline, meaningful messages, and structuring Chromologger in real applications."
 ---
@@ -11,6 +11,8 @@ Following these patterns helps keep your logs useful, consistent, and your appli
 Every `Logger` holds an open file handle. If the handle is not explicitly closed, buffered writes may not be flushed to disk and the file descriptor will remain open until the process exits. Use a `finally` block to guarantee `close()` is called even when an exception occurs:
 
 ```python
+from chromologger import Logger
+
 logger = Logger('./logs/app.log')
 try:
     logger.log('Starting batch job')
@@ -29,6 +31,10 @@ The `finally` block runs regardless of whether `run_job()` succeeded or raised a
 `log()` produces `[INFO]` entries. `log_e()` produces `[ERROR]` entries with structured traceback fields (`Exception`, `File`, `ErrorLine`, `Message`). Reserve `log_e()` for real exception objects caught in an `except` block:
 
 ```python
+from chromologger import Logger
+
+logger = Logger('./logs/app.log')
+
 # ✅ Correct
 logger.log('User authenticated successfully')
 logger.log('Database connected')
@@ -64,8 +70,10 @@ Specific messages are also easier to `grep` for when you need to trace the histo
 If `Logger()` fails to open the file (for example, because the directory does not exist), `logger.file` is set to `-1` rather than a `TextIOWrapper`. You can guard against writing to an invalid logger by checking the type:
 
 ```python
-logger = Logger('./logs/app.log')
 from io import TextIOWrapper
+from chromologger import Logger
+
+logger = Logger('./logs/app.log')
 
 if isinstance(logger.file, TextIOWrapper):
     logger.log('Logger is ready')

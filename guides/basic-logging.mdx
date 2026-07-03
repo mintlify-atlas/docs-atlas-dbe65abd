@@ -1,7 +1,7 @@
 ---
-title: "Basic Logging with Chromologger"
+title: "Getting Started with Basic Logging in Chromologger"
 sidebarTitle: "Basic Logging"
-description: "Learn how to create a Logger, write informational messages, and understand the structured [INFO][timestamp] log format that Chromologger produces."
+description: "Create a Logger, write informational messages, and understand the [INFO][timestamp] log format Chromologger writes to disk and prints to the console."
 ---
 
 This guide walks you through the fundamentals of Chromologger: creating a `Logger` instance, recording informational events with `log()`, and properly releasing file resources when you're done. By the end you'll have a clear picture of the `[INFO][timestamp]` format written to your log files and the recommended patterns for managing the logger lifecycle.
@@ -49,7 +49,7 @@ logger.log({'key': 'value'})
 logger.log(42)
 ```
 
-Each call appends one line to the log file in the following format:
+Each call appends one line to the log file **and** prints a colorized informational message to the console via `chromolog`. The file format is:
 
 ```text
 [INFO][2025-01-06 19:52:08.636560] - Service started

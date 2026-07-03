@@ -1,7 +1,7 @@
 ---
-title: "Chromologger Changelog — Version History"
+title: "Chromologger Changelog — Full Version History"
 sidebarTitle: "Changelog"
-description: "Full release history for Chromologger: what changed in each version, including new features, bug fixes, and breaking changes."
+description: "Complete release history for Chromologger: every version, new features, bug fixes, and breaking changes from v0.1.0 to the latest stable release."
 ---
 
 This page tracks every release of **Chromologger** since its initial launch. For the latest published package, visit the [PyPI page](https://pypi.org/project/chromologger). For the raw changelog file, see the [GitHub releases](https://github.com/Dev2Forge/chromologger/blob/main/CHANGELOG.md).
@@ -53,8 +53,14 @@ This page tracks every release of **Chromologger** since its initial launch. For
 - Refactored path handling from `os` to `pathlib`.
 - Full support for relative paths.
 - New log message formats:
-  - `log()`: `[INFO][2025-07-15 17:57:50.137718] - Log message`
-  - `log_e()`: `[ERROR][2025-07-15 18:57:50.137718] - Exception - FileNotFoundError - File - path/to/file.py - ErrorLine: 35 - Message: description`
+  - `log()`:
+    ```txt
+    [INFO][2025-07-15 17:57:50.137718] - Log message
+    ```
+  - `log_e()`:
+    ```txt
+    [ERROR][2025-07-15 18:57:50.137718] - Exception - FileNotFoundError - File - path/to/file.py - ErrorLine: 35 - Message: description
+    ```
 - Improvements to file opening and writing.
 
 ---

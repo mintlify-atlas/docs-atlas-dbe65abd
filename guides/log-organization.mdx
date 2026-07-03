@@ -1,7 +1,7 @@
 ---
-title: "Organizing Log Files by Date and Purpose"
+title: "Organizing Chromologger Log Files by Date and Purpose"
 sidebarTitle: "Log Organization"
-description: "Structure your log files by date, component, or environment using Chromologger's path parameter to keep logs scannable and easy to archive."
+description: "Structure your log files by date, component, or environment using the log_file_name constructor argument to keep logs scannable and easy to archive."
 ---
 
 Because `Logger()` accepts any file path, you have full control over how log files are named and where they are stored. You can organize them by date so older files roll off naturally, by component so you can read subsystem logs in isolation, by environment so production and development logs never mix, or by an absolute path when you need logs outside the project directory.
@@ -64,9 +64,10 @@ logger = Logger(log_path)
 ```
 
 <Tip>
-  Chromologger resolves the file path with `pathlib.Path.resolve()` internally,
-  so both relative paths (e.g. `./logs/app.log`) and absolute paths are handled
-  correctly on all platforms — including Windows, where path separators differ.
+  Chromologger resolves the file path with `pathlib.Path.resolve().absolute()`
+  internally, so both relative paths (e.g. `./logs/app.log`) and absolute paths
+  are handled correctly on all platforms — including Windows, where path
+  separators differ.
 </Tip>
 
 <Warning>

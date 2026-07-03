@@ -1,5 +1,5 @@
 ---
-title: "FileManager Utility — Chromologger Internals"
+title: "FileManager — Chromologger File and Path Utilities"
 sidebarTitle: "FileManager"
 description: "Reference for FileManager, the internal static utility class that handles file opening, writing, and path resolution in Chromologger."
 ---
@@ -46,8 +46,8 @@ Resolves `file_relative_path` to an absolute path via `get_abs_path()`, then ope
   Character encoding passed to `open()`. Defaults to UTF-8.
 </ParamField>
 
-<ResponseField name="return" type="TextIOWrapper">
-  The open file object on success. Any exception raised during `open()` is re-raised to the caller — the method does not swallow errors silently.
+<ResponseField name="return" type="Union[TextIOWrapper, None]">
+  The open file object on success. Any exception raised during `open()` is re-raised to the caller — the method does not swallow errors silently. In practice, `None` is never returned because any failure path raises rather than returning.
 </ResponseField>
 
 ---
