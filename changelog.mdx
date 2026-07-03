@@ -1,0 +1,121 @@
+---
+title: "Chromologger Changelog — Version History"
+sidebarTitle: "Changelog"
+description: "Full release history for Chromologger: what changed in each version, including new features, bug fixes, and breaking changes."
+---
+
+This page tracks every release of **Chromologger** since its initial launch. For the latest published package, visit the [PyPI page](https://pypi.org/project/chromologger). For the raw changelog file, see the [GitHub releases](https://github.com/Dev2Forge/chromologger/blob/main/CHANGELOG.md).
+
+---
+
+## v0.1.9 — 2025-07-16
+
+**Added**
+
+- New `FileManager` class responsible for all file operations: opening, closing, writing, and reading. Improves cohesion and follows the SOLID single-responsibility principle.
+- Support for relative paths when specifying log files, correctly resolved using `pathlib.Path`.
+
+**Changed**
+
+- `log_file_name` parameter in `Logger` is now optional (defaults to `'log.log'`).
+- Automatic detection of the calling script's directory:
+  1. Retrieves the caller's directory using `inspect`.
+  2. Constructs the log file path in that directory.
+  3. Falls back to the default name `log.log` if no name is provided.
+- Path resolution migrated from `os.path` to `pathlib.Path`.
+
+<Note>
+  If the file name does not include an explicit path, the log is created in the same directory from which the logger was instantiated.
+</Note>
+
+---
+
+## v0.1.9rc2
+
+- Updated README.
+
+---
+
+## v0.1.9rc1
+
+- Final release-candidate testing before stable release.
+
+---
+
+## v0.1.9a2
+
+- Fixed log file name error causing issues on some systems.
+
+---
+
+## v0.1.9a1
+
+- Refactored path handling from `os` to `pathlib`.
+- Full support for relative paths.
+- New log message formats:
+  - `log()`: `[INFO][2025-07-15 17:57:50.137718] - Log message`
+  - `log_e()`: `[ERROR][2025-07-15 18:57:50.137718] - Exception - FileNotFoundError - File - path/to/file.py - ErrorLine: 35 - Message: description`
+- Improvements to file opening and writing.
+
+---
+
+## v0.1.8
+
+- Improved error handling in `log_e(e: Exception)`.
+- Updated username in logs.
+
+---
+
+## v0.1.7
+
+- Minor bug fixes.
+
+---
+
+## v0.1.6
+
+- Dependency updates.
+
+---
+
+## v0.1.5
+
+- Fixed missing `traceback` import.
+
+---
+
+## v0.1.4
+
+- Improved automatic dependency management using pip directly instead of `subprocess`.
+
+---
+
+## v0.1.3
+
+- Automatic dependency installation; users no longer need to install dependencies manually.
+
+---
+
+## v0.1.2
+
+- Bug fixes related to PyPI publishing (twine).
+
+---
+
+## v0.1.1
+
+- Minor bug fixes.
+
+---
+
+## v0.1.0
+
+- Initial release.
+
+---
+
+## Links
+
+- [PyPI package](https://pypi.org/project/chromologger)
+- [GitHub repository](https://github.com/Dev2Forge/chromologger)
+- [Full CHANGELOG on GitHub](https://github.com/Dev2Forge/chromologger/blob/main/CHANGELOG.md)

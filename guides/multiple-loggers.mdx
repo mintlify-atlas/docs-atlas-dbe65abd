@@ -1,0 +1,87 @@
+---
+title: "Using Multiple Loggers in One Application"
+sidebarTitle: "Multiple Loggers"
+description: "Create separate Logger instances for different subsystems — access, errors, and performance — and safely close all of them when your application exits."
+---
+
+Chromologger allows any number of `Logger` instances to be active at the same time, each writing independently to its own file. This lets you separate concerns cleanly: access events, application errors, and performance metrics each live in their own log file and can be inspected, archived, or rotated individually.
+
+## Creating multiple loggers
+
+```python multiple_loggers.py
+from chromologger import Logger
+import os
+
+os.makedirs('./logs', exist_ok=True)
+
+access_logger = Logger('./logs/access.log')
+error_logger  = Logger('./logs/errors.log')
+perf_logger   = Logger('./logs/performance.log')
+```
+
+Each constructor call opens a separate file handle in append mode, so existing log entries are preserved across restarts.
+
+## Using them independently
+
+Route each event to the logger that matches its purpose:
+
+```python
+access_logger.log('GET /api/users - 200')
+perf_logger.log('DB query completed in 12ms')
+
+try:
+    process_request()
+except Exception as e:
+    error_logger.log_e(e)
+```
+
+Calls to different loggers are completely independent — writing to `access_logger` has no effect on `error_logger` or `perf_logger`.
+
+## Closing all loggers
+
+Collect your loggers in a list so you can close them all in a single loop, typically inside a `finally` block:
+
+```python
+loggers = [access_logger, error_logger, perf_logger]
+for lg in loggers:
+    lg.close()
+```
+
+`close()` returns `True` for each logger that had a valid file open and `False` otherwise, so you can check the return values if you need to confirm cleanup.
+
+## Web application example
+
+The pattern below shows how multiple loggers integrate naturally into an application class:
+
+```python web_app.py
+from chromologger import Logger
+from datetime import datetime
+import os
+
+log_dir = './logs'
+os.makedirs(log_dir, exist_ok=True)
+
+access_logger = Logger(f'{log_dir}/access.log')
+error_logger  = Logger(f'{log_dir}/errors.log')
+
+class WebApp:
+    def handle_request(self, user_id: str, endpoint: str):
+        try:
+            access_logger.log(f'User {user_id} → {endpoint}')
+            # ... request handling ...
+            access_logger.log(f'Request OK for {user_id}')
+        except Exception as e:
+            error_logger.log_e(e)
+
+    def shutdown(self):
+        for lg in [access_logger, error_logger]:
+            lg.close()
+```
+
+<Note>
+  Each `Logger` opens its file in **append mode**. Concurrent writes from
+  multiple threads to the **same file** are not guaranteed to be safe — file
+  writes may interleave and produce corrupted log lines. Use a separate log file
+  per `Logger` instance (as shown above) rather than pointing multiple loggers
+  at the same path.
+</Note>

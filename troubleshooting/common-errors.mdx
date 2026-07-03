@@ -1,0 +1,120 @@
+---
+title: "Fix Common Chromologger Errors"
+sidebarTitle: "Common Errors"
+description: "Diagnose and fix the most frequent Chromologger errors: FileNotFoundError on Logger creation, failed close, and import issues."
+---
+
+This page covers the most common runtime errors developers encounter when using Chromologger, along with their root causes and step-by-step fixes.
+
+<AccordionGroup>
+  <Accordion title="FileNotFoundError when creating a Logger">
+    **Cause:** The parent directory of the log file path you passed to `Logger()` does not exist. Chromologger opens the file with `FileManager.open_file()` and does **not** auto-create missing parent directories — it only creates the file itself.
+
+    ```python
+    # ❌ Fails if ./nonexistent_dir/ does not already exist
+    logger = Logger('./nonexistent_dir/app.log')
+    ```
+
+    **Fix:** Create the directory with `os.makedirs` before instantiating the logger.
+
+    ```python
+    import os
+    from chromologger import Logger
+
+    os.makedirs('./logs', exist_ok=True)
+    logger = Logger('./logs/app.log')  # ✅ directory exists, file is created safely
+    ```
+
+    <Note>
+      When you use the default `Logger()` (i.e. `log_file_name='log.log'`), the file is placed in the same directory as your calling script — a directory that always exists. You do **not** need `os.makedirs` for the default case.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Logger.close() returns False">
+    **Cause:** `Logger.__open()` returned `-1` (an `int`) because the log file could not be opened — typically due to a missing directory or a permission error. The `close()` method checks `type(self.file) == TextIOWrapper` before attempting to close; when `self.file` is `-1`, it skips the close and returns `False`.
+
+    **How to detect it before calling `close()`:**
+
+    ```python
+    from io import TextIOWrapper
+    from chromologger import Logger
+
+    logger = Logger('./logs/app.log')
+
+    if not isinstance(logger.file, TextIOWrapper):
+        print('Logger did not open the file correctly — check the path.')
+    ```
+
+    **Fix:** Resolve the underlying cause (missing directory or insufficient permissions) so that `__open()` succeeds and `self.file` is a valid `TextIOWrapper`.
+
+    <Warning>
+      If `close()` returns `False`, no log entries were written to disk either. Any calls to `log()` or `log_e()` will have silently failed. See the *"Log entries not appearing in the file"* section below.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="ModuleNotFoundError: No module named 'chromolog'">
+    **Cause:** Chromologger depends on `chromolog==0.2.5` for colorized console output (via `chromolog.Print`). If `chromolog` is missing, Python raises `ModuleNotFoundError` the moment `chromologger` is imported.
+
+    **Fix:** Install the missing dependency manually.
+
+    ```bash
+    pip install chromolog==0.2.5
+    ```
+
+    <Note>
+      `chromolog==0.2.5` is listed as a dependency in Chromologger's `pyproject.toml`, so running `pip install chromologger` should install it automatically. If it did not (e.g. you installed from source or a custom wheel), the command above resolves it.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Log entries not appearing in the file">
+    This symptom has two common causes.
+
+    **Cause 1 — File never opened:** If `Logger.__open()` returned `-1`, every call to `log()` or `log_e()` reaches the internal `__write()` method, which tries to call `self.file.writelines(...)` on an integer. The resulting `AttributeError` is caught silently by `__write`'s internal error handler and written to the module's own `log.log` — not your file.
+
+    **Cause 2 — Logger not closed:** Without calling `logger.close()`, buffered content may not be fully flushed to disk. Although Chromologger uses `writelines` (which generally flushes line-by-line), explicitly closing the file is still strongly recommended.
+
+    **Fix:**
+
+    ```python
+    from io import TextIOWrapper
+    from chromologger import Logger
+
+    logger = Logger('./logs/app.log')
+
+    # 1. Confirm the file opened correctly
+    if not isinstance(logger.file, TextIOWrapper):
+        print('Logger failed to open — no entries will be written.')
+    else:
+        logger.log('Application started')
+        # ... your work ...
+        logger.close()  # 2. Always close when done
+    ```
+
+    <Tip>
+      When Chromologger's internal error handler fires, it writes a `log.log` file inside the package directory and prints the path to the console via `chromolog`. Check that output for a quick pointer to the root cause.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Wrong log file location">
+    **Cause:** When you call `Logger()` with the default `log_file_name='log.log'`, Chromologger places the file beside the **calling script** — not the current working directory. It determines the script's location at runtime using:
+
+    ```python
+    inspect.currentframe().f_back.f_code.co_filename
+    ```
+
+    If your script lives in `/home/user/myproject/src/app.py` but you run Python from `/home/user/myproject/`, the log file appears in `src/`, which can be surprising.
+
+    **Fix:** Pass an explicit path to `Logger()` so the location is always predictable.
+
+    ```python
+    from chromologger import Logger
+
+    # Relative to cwd — consistent regardless of where the script lives
+    logger = Logger('./logs/app.log')  # ✅ predictable location
+    ```
+
+    <Tip>
+      For absolute control over the output path, pass an absolute path string: `Logger('/var/log/myapp/app.log')`. Chromologger resolves it via `pathlib.Path(...).resolve().absolute()`.
+    </Tip>
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,89 @@
+---
+title: "Chromologger Best Practices and Patterns"
+sidebarTitle: "Best Practices"
+description: "Recommended patterns for resource management, log level discipline, meaningful messages, and structuring Chromologger in real applications."
+---
+
+Following these patterns helps keep your logs useful, consistent, and your application's resource usage clean. The recommendations below reflect the `Logger` API as it exists today and apply equally whether you are building a small script or a larger multi-component application.
+
+## Always close loggers
+
+Every `Logger` holds an open file handle. If the handle is not explicitly closed, buffered writes may not be flushed to disk and the file descriptor will remain open until the process exits. Use a `finally` block to guarantee `close()` is called even when an exception occurs:
+
+```python
+logger = Logger('./logs/app.log')
+try:
+    logger.log('Starting batch job')
+    run_job()
+    logger.log('Batch job complete')
+except Exception as e:
+    logger.log_e(e)
+finally:
+    logger.close()
+```
+
+The `finally` block runs regardless of whether `run_job()` succeeded or raised an exception, so the file is always released.
+
+## Use `log()` for events, `log_e()` only for exceptions
+
+`log()` produces `[INFO]` entries. `log_e()` produces `[ERROR]` entries with structured traceback fields (`Exception`, `File`, `ErrorLine`, `Message`). Reserve `log_e()` for real exception objects caught in an `except` block:
+
+```python
+# ✅ Correct
+logger.log('User authenticated successfully')
+logger.log('Database connected')
+
+try:
+    risky_operation()
+except Exception as e:
+    logger.log_e(e)   # only for real exceptions
+
+# ❌ Avoid: passing an exception message as a plain string
+logger.log('Error: something went wrong')  # loses traceback detail
+```
+
+When you pass a plain string to `log()` to describe an error, Chromologger has no traceback to extract, so the `File` and `ErrorLine` fields are never populated. You lose the exact location of the problem.
+
+## Write informative messages
+
+Log entries that omit context are hard to act on when something goes wrong. Include the relevant values — counts, identifiers, paths — directly in the message:
+
+```python
+# ❌ Vague
+logger.log('done')
+
+# ✅ Specific and searchable
+logger.log(f'Exported {record_count} records to {output_path}')
+logger.log(f'Cache miss for key: {cache_key}')
+```
+
+Specific messages are also easier to `grep` for when you need to trace the history of a particular record or operation.
+
+## Check logger validity before use
+
+If `Logger()` fails to open the file (for example, because the directory does not exist), `logger.file` is set to `-1` rather than a `TextIOWrapper`. You can guard against writing to an invalid logger by checking the type:
+
+```python
+logger = Logger('./logs/app.log')
+from io import TextIOWrapper
+
+if isinstance(logger.file, TextIOWrapper):
+    logger.log('Logger is ready')
+else:
+    print('Logger failed to open the file')
+```
+
+This is particularly useful in scripts that run in environments where the log directory may or may not be present, and you want to handle the failure gracefully rather than silently dropping log entries.
+
+<Note>
+  The following features are on the Chromologger roadmap and are not yet
+  available in the current release:
+
+  - **Additional log levels** — `WARNING`, `DEBUG`, and `CRITICAL` in addition to `INFO` and `ERROR`
+  - **Context manager support** — using `Logger` with a `with` statement for automatic cleanup
+  - **Log rotation** — automatic rotation by file size or date
+  - **Structured export** — writing log entries in JSON or CSV format
+
+  Until these land, use the patterns above to manage resources and level
+  discipline manually.
+</Note>

@@ -1,0 +1,80 @@
+---
+title: "Chromologger: Structured Python Logging for Developers"
+sidebarTitle: "Introduction"
+description: "Chromologger is a Python library that writes structured, timestamped log files with colorized console output and automatic exception traceback capture."
+---
+
+Chromologger is a Python logging library designed to make professional-quality log files effortless to produce in any Python application. Rather than configuring handlers, formatters, and levels from scratch, you call `Logger()` and immediately get microsecond-precision, append-mode log files with automatic exception capture and colorized console feedback — all in three methods. It is aimed at developers who need reliable, readable logs during development and in production without the ceremony of the standard `logging` module.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card icon="clock" title="Microsecond-precision timestamps">
+    Every log entry carries a full `YYYY-MM-DD HH:MM:SS.microseconds` timestamp so you can correlate events down to the microsecond.
+  </Card>
+  <Card icon="bug" title="Automatic exception traceback capture">
+    `log_e(e)` extracts the exception type, source file, line number, and human-readable message from the live traceback — no manual formatting required.
+  </Card>
+  <Card icon="palette" title="Colorized console output">
+    The bundled `chromolog` dependency prints color-coded messages to your terminal whenever `log()` is called, giving you an at-a-glance view of activity without opening the log file.
+  </Card>
+  <Card icon="bolt" title="Zero-config default">
+    Calling `Logger()` with no arguments creates `log.log` in the same directory as the calling script — no paths, no setup, no configuration files needed.
+  </Card>
+  <Card icon="lock" title="Append-mode writes">
+    Log files are always opened in append mode. Existing data is never overwritten; every run accumulates its entries safely at the end of the file.
+  </Card>
+  <Card icon="folder" title="Relative and absolute path support">
+    Pass `Logger('./logs/app.log')` or any absolute path and Chromologger resolves it correctly using `pathlib.Path` — on every operating system.
+  </Card>
+  <Card icon="shield" title="Internal error logging">
+    Module-level failures (file permission errors, type problems) are written to a separate internal log file so they never silently swallow your application errors.
+  </Card>
+  <Card icon="code" title="Simple 3-method public API">
+    The entire public surface is `log()`, `log_e()`, and `close()`. There is nothing else to learn before you are productive.
+  </Card>
+</CardGroup>
+
+## Log format
+
+Chromologger writes structured text entries that are easy to read and straightforward to parse with any log-analysis tool.
+
+**INFO entry** — produced by `logger.log('Application started')`:
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - Application started
+```
+
+**ERROR entry** — produced by `logger.log_e(e)` after catching a `FileNotFoundError`:
+
+```text
+[ERROR][2025-01-06 19:52:08.636560] - Exception: FileNotFoundError - File: /app/main.py - ErrorLine: 35 - Message: [Errno 2] No such file or directory: './config.json'
+```
+
+Every line follows the pattern `[LEVEL][TIMESTAMP] - message`, making it trivial to filter by level with `grep` or ingest into a log-aggregation system.
+
+## Python version support
+
+Chromologger requires **Python >= 3.8** and is actively tested on:
+
+- Python 3.8
+- Python 3.10
+- Python 3.11
+- Python 3.12
+- Python 3.13
+- Python 3.14
+
+## Dependencies
+
+The only runtime dependency is **`chromolog==0.2.5`**, which provides the colorized console output. It is declared in `pyproject.toml` and installed automatically alongside Chromologger.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card icon="download" title="Installation" href="/installation">
+    Install Chromologger from PyPI in seconds and verify the setup.
+  </Card>
+  <Card icon="rocket" title="Quickstart" href="/quickstart">
+    Create your first Logger, write entries, capture exceptions, and close the file cleanly.
+  </Card>
+</CardGroup>

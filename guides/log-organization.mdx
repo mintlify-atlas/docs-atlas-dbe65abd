@@ -1,0 +1,78 @@
+---
+title: "Organizing Log Files by Date and Purpose"
+sidebarTitle: "Log Organization"
+description: "Structure your log files by date, component, or environment using Chromologger's path parameter to keep logs scannable and easy to archive."
+---
+
+Because `Logger()` accepts any file path, you have full control over how log files are named and where they are stored. You can organize them by date so older files roll off naturally, by component so you can read subsystem logs in isolation, by environment so production and development logs never mix, or by an absolute path when you need logs outside the project directory.
+
+## By date
+
+Generate the filename dynamically from today's date so each day's logs land in their own file:
+
+```python
+from chromologger import Logger
+from datetime import datetime
+import os
+
+log_dir = './logs'
+os.makedirs(log_dir, exist_ok=True)
+
+date_str = datetime.now().strftime('%Y%m%d')
+logger = Logger(f'{log_dir}/app_{date_str}.log')
+# e.g. ./logs/app_20250106.log
+```
+
+After a week of operation you'll have `app_20250106.log`, `app_20250107.log`, and so on — each independently archivable or deletable.
+
+## By component
+
+Separate concerns into distinct files that can be inspected individually:
+
+```python
+auth_logger = Logger('./logs/authentication.log')
+db_logger   = Logger('./logs/database.log')
+api_logger  = Logger('./logs/api_requests.log')
+```
+
+This makes it straightforward to hand the `database.log` to a database administrator without exposing unrelated application output.
+
+## By environment
+
+Read the current environment from an environment variable and include it in the filename:
+
+```python
+import os
+
+env = os.getenv('APP_ENV', 'development')
+logger = Logger(f'./logs/app_{env}.log')
+# e.g. ./logs/app_production.log
+```
+
+Set `APP_ENV=production` in your deployment environment and `APP_ENV=staging` on a staging server so the logs from each tier are immediately distinguishable.
+
+## Absolute paths
+
+Use `os.path.join` and `os.path.expanduser` when you need to write logs outside the project directory — for example to a system-wide log folder:
+
+```python
+import os
+
+log_path = os.path.join(os.path.expanduser('~'), 'myapp', 'logs', 'app.log')
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
+logger = Logger(log_path)
+```
+
+<Tip>
+  Chromologger resolves the file path with `pathlib.Path.resolve()` internally,
+  so both relative paths (e.g. `./logs/app.log`) and absolute paths are handled
+  correctly on all platforms — including Windows, where path separators differ.
+</Tip>
+
+<Warning>
+  The **parent directory** of the log file must exist before you call
+  `Logger()`. Chromologger will not auto-create missing directories — it will
+  raise a `FileNotFoundError` if the directory is absent. Always call
+  `os.makedirs(os.path.dirname(path), exist_ok=True)` (or the equivalent)
+  before constructing the logger.
+</Warning>

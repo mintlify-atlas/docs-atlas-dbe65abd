@@ -1,0 +1,67 @@
+---
+title: "Dates Utility — Chromologger Timestamp Helper"
+sidebarTitle: "Dates"
+description: "Reference for the Dates utility class that provides the microsecond-precision timestamp used in every Chromologger log entry."
+---
+
+`Dates` is a minimal static utility class in `chromologger.utils.dates`. It provides a single method, `now_date()`, which returns the current timestamp used in every log entry written by `Logger`.
+
+## Import
+
+```python
+from chromologger.utils.dates import Dates
+```
+
+<Note>
+  `Dates` is an internal utility. The [`Logger`](/api/logger) class handles timestamp formatting automatically — you do not need to call `Dates.now_date()` directly in normal usage.
+</Note>
+
+---
+
+## Methods
+
+### `now_date()`
+
+```python
+Dates.now_date() -> datetime
+```
+
+Returns `datetime.now()` — the current local date and time with microsecond precision.
+
+Called internally by `Logger.__write()` to stamp each log entry at the exact moment it is written. The same method is also used by `Logger.__log()` when recording entries to the module's internal error log.
+
+<ResponseField name="return" type="datetime">
+  A `datetime` object representing the current local time, including microseconds. Equivalent to calling `datetime.datetime.now()` from the standard library directly.
+</ResponseField>
+
+**Example**
+
+```python
+from chromologger.utils.dates import Dates
+
+ts = Dates.now_date()
+print(ts)  # e.g. 2025-01-06 19:52:08.636560
+```
+
+The `datetime` object is embedded in log entries using Python's default `str(datetime)` representation:
+
+```text
+YYYY-MM-DD HH:MM:SS.microseconds
+```
+
+Which produces timestamps like:
+
+```text
+2025-01-06 19:52:08.636560
+```
+
+These timestamps appear in both log entry formats produced by `Logger`:
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - message
+[ERROR][2025-01-06 19:52:08.636560] - Exception: ExceptionType - File: /path/to/file.py - ErrorLine: 35 - Message: error details
+```
+
+<Tip>
+  Because `now_date()` uses `datetime.now()` (local time, no timezone info), log timestamps reflect the system clock of the machine running your application. If you need timezone-aware timestamps, consider post-processing the log file or subclassing `Logger` to override `__write()`.
+</Tip>

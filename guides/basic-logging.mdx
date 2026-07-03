@@ -1,0 +1,103 @@
+---
+title: "Basic Logging with Chromologger"
+sidebarTitle: "Basic Logging"
+description: "Learn how to create a Logger, write informational messages, and understand the structured [INFO][timestamp] log format that Chromologger produces."
+---
+
+This guide walks you through the fundamentals of Chromologger: creating a `Logger` instance, recording informational events with `log()`, and properly releasing file resources when you're done. By the end you'll have a clear picture of the `[INFO][timestamp]` format written to your log files and the recommended patterns for managing the logger lifecycle.
+
+## Creating a Logger
+
+Import `Logger` from `chromologger` and call the constructor. The single optional parameter is the path to the log file.
+
+**Default — `log.log` in the caller's directory**
+
+```python
+from chromologger import Logger
+
+logger = Logger()
+# Creates log.log next to the script that runs this code
+```
+
+**Custom path — any relative or absolute file path**
+
+```python
+from chromologger import Logger
+
+logger = Logger('./logs/app.log')
+```
+
+<Warning>
+  The parent directory of the log file **must already exist** before you call
+  `Logger()` with a custom path. Chromologger opens the file immediately on
+  construction and will raise a `FileNotFoundError` if the directory is missing.
+  Create it first with `os.makedirs('./logs', exist_ok=True)`.
+</Warning>
+
+## Logging messages
+
+Call `logger.log()` with any value. Chromologger converts the argument to a string automatically, so strings, dictionaries, numbers, and any other type all work.
+
+```python
+# String message
+logger.log('Service started')
+
+# Dictionary — auto-converted to its string representation
+logger.log({'key': 'value'})
+
+# Number
+logger.log(42)
+```
+
+Each call appends one line to the log file in the following format:
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - Service started
+[INFO][2025-01-06 19:52:08.636561] - {'key': 'value'}
+[INFO][2025-01-06 19:52:08.636562] - 42
+```
+
+The timestamp is recorded at microsecond precision using the system clock at the moment `log()` is called.
+
+## Closing the logger
+
+`logger.close()` flushes and closes the underlying file handle. It returns `True` when the file was closed successfully, or `False` if no valid file was open (for example, because the constructor failed to open the file).
+
+```python
+success = logger.close()
+# True  → file closed and resources released
+# False → no valid file was open
+```
+
+Always close the logger when you are finished — either explicitly at the end of a script or inside a `finally` block so the file is released even if an exception is raised.
+
+## Full example
+
+```python basic_logging.py
+from chromologger import Logger
+import os
+
+os.makedirs('./logs', exist_ok=True)
+logger = Logger('./logs/app.log')
+
+logger.log('Service started')
+logger.log({'event': 'user_login', 'user': 'alice'})
+logger.log(f'Processed {150} records')
+
+logger.close()
+```
+
+The resulting `./logs/app.log` will contain:
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - Service started
+[INFO][2025-01-06 19:52:08.636561] - {'event': 'user_login', 'user': 'alice'}
+[INFO][2025-01-06 19:52:08.636562] - Processed 150 records
+```
+
+<Tip>
+  Ready to record errors and exceptions? Head over to the
+  [Exception Logging](/guides/exception-logging) guide to learn how `log_e()`
+  captures the full traceback — including the source file, line number, and
+  exception type — in a single call.
+</Tip>

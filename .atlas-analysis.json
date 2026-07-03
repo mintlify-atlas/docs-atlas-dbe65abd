@@ -1,0 +1,86 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Chromologger",
+  "projectDescription": "A Python logging module that provides structured, timestamped file-based logs with colorized console output and automatic exception traceback capture.",
+  "theme": "luma",
+  "primaryColor": "#2673d9",
+  "lightColor": "#54b8e9",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/basic-logging",
+              "guides/exception-logging",
+              "guides/multiple-loggers",
+              "guides/log-organization",
+              "guides/best-practices"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "troubleshooting/common-errors",
+              "troubleshooting/faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "API Reference",
+            "pages": [
+              "api/logger",
+              "api/file-manager",
+              "api/dates"
+            ]
+          },
+          {
+            "group": "Changelog",
+            "pages": [
+              "changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Structured log format with microsecond-precision timestamps",
+    "Automatic exception traceback capture (file, line, message)",
+    "Colorized console output via chromolog dependency",
+    "Automatic caller script detection for default log file placement",
+    "Support for relative and absolute log file paths via pathlib",
+    "Append-mode file writes — no log data is ever overwritten",
+    "Internal logging system for module-level errors",
+    "Zero-config default: Logger() works out of the box"
+  ],
+  "publicApiSurface": [
+    "Logger(log_file_name: str = 'log.log')",
+    "Logger.log(msg: any) -> None",
+    "Logger.log_e(e: Exception) -> None",
+    "Logger.close() -> bool",
+    "FileManager.open_file(file_relative_path, mode, encoding)",
+    "FileManager.write_plain_text_file(file_path, message)",
+    "FileManager.get_abs_path(relative_path)",
+    "FileManager.get_abs_dir(relative_path)",
+    "FileManager.join_paths(base_path, *others_paths)",
+    "Dates.now_date() -> datetime",
+    "__version__",
+    "__author__"
+  ]
+}

@@ -1,0 +1,187 @@
+---
+title: "Logger — Chromologger Python API Reference"
+sidebarTitle: "Logger"
+description: "Complete reference for the Logger class: constructor parameters, log(), log_e(), close() methods, instance attributes, and log output format."
+---
+
+`Logger` is the primary class in Chromologger. It manages a log file and provides three public methods for writing records — `log()` for general informational messages, `log_e()` for structured exception entries, and `close()` to release the file handle when you are done.
+
+## Import
+
+```python
+from chromologger import Logger
+```
+
+---
+
+## Constructor
+
+```python
+Logger(log_file_name: str = 'log.log') -> None
+```
+
+Creates a new `Logger` instance, resolves the target log file path, and opens the file in append mode.
+
+<ParamField path="log_file_name" type="str" default="'log.log'">
+  Name or path of the log file.
+
+  - When the default `'log.log'` is used, the file is created in the same directory as the calling script, detected automatically via Python's `inspect` module.
+  - Any other value is resolved to an absolute path using `pathlib.Path.resolve()`, so both relative paths (e.g. `'./logs/app.log'`) and absolute paths (e.g. `'/var/log/app.log'`) are accepted.
+</ParamField>
+
+**Examples**
+
+```python
+logger = Logger()                    # log.log beside the calling script
+logger = Logger('./logs/app.log')    # resolved to an absolute path
+logger = Logger('/var/log/app.log')  # absolute path used as-is
+```
+
+<Warning>
+  The parent directory of the log file must already exist. Chromologger will **not** create missing directories — if the directory is absent, `__open()` will catch a `FileNotFoundError`, store `-1` in `self.file`, and write the failure to the module's internal log.
+</Warning>
+
+---
+
+## Instance Attributes
+
+After construction, the following attributes are available on every `Logger` instance.
+
+<ResponseField name="log_file_name" type="str">
+  The exact value passed to the constructor (e.g. `'log.log'` or `'./logs/app.log'`).
+</ResponseField>
+
+<ResponseField name="caller_script" type="str">
+  Absolute path of the **directory** that contains the script which created this `Logger`, resolved via `inspect.currentframe().f_back.f_code.co_filename`.
+</ResponseField>
+
+<ResponseField name="path" type="str">
+  Fully resolved absolute path to the log file. When `log_file_name` is `'log.log'` this is `<caller_script>/log.log`; otherwise it is the result of `FileManager.get_abs_path(log_file_name)`.
+</ResponseField>
+
+<ResponseField name="file" type="TextIOWrapper | int">
+  The open file object returned by `FileManager.open_file()`. Set to `-1` if the file could not be opened (e.g. the parent directory does not exist).
+</ResponseField>
+
+---
+
+## Methods
+
+### `log(msg)`
+
+```python
+log(msg: any) -> None
+```
+
+Writes an `[INFO]` record to the log file. `msg` can be any Python object — it is converted to `str` automatically before writing.
+
+After writing to the file, `log()` also prints a colorized informational message to the console via `chromolog`, showing the path of the log file.
+
+<ParamField path="msg" type="any" required>
+  The value to log. Strings, numbers, dicts, objects — anything that can be meaningfully converted with `str()` is accepted.
+</ParamField>
+
+**Examples**
+
+```python
+logger.log('Server started on port 8080')
+logger.log({'event': 'login', 'user': 'alice'})
+logger.log(42)
+```
+
+**Output format**
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - Server started on port 8080
+```
+
+---
+
+### `log_e(e)`
+
+```python
+log_e(e: Exception) -> None
+```
+
+Writes an `[ERROR]` record with full exception context — exception type, source file, line number, and the exception message — all extracted via `traceback.extract_tb(e.__traceback__)`.
+
+<ParamField path="e" type="Exception" required>
+  A caught exception instance. The method reads `e.__traceback__` to locate the precise file and line where the exception was raised, then reads `e.__class__.__name__` for the type name and `str(e)` for the message.
+</ParamField>
+
+**Example**
+
+```python
+try:
+    result = 10 / 0
+except ZeroDivisionError as e:
+    logger.log_e(e)
+```
+
+**Output format**
+
+```text
+[ERROR][2025-01-06 19:52:08.636560] - Exception: ZeroDivisionError - File: /app/main.py - ErrorLine: 7 - Message: division by zero
+```
+
+<Note>
+  If the exception was never actually raised (i.e. it has no traceback attached), `traceback.extract_tb()` will return an empty list and indexing into it will itself raise an `IndexError`. In that case `log_e()` catches the secondary exception internally via `__log()` and writes it to the module's own internal log — it will **not** propagate to your application code.
+</Note>
+
+---
+
+### `close()`
+
+```python
+close() -> bool
+```
+
+Closes the log file and releases the underlying file handle.
+
+<ResponseField name="return" type="bool">
+  - `True` — the file was a valid `TextIOWrapper` and has been closed successfully.
+  - `False` — the file was never opened (i.e. `self.file` is `-1`); nothing was closed.
+</ResponseField>
+
+**Example**
+
+```python
+success = logger.close()
+if not success:
+    print('Logger had no valid file to close')
+```
+
+<Tip>
+  Always call `close()` when your application exits (or when you are done with the logger) to ensure all buffered writes are flushed to disk and the OS file descriptor is freed.
+</Tip>
+
+---
+
+## Module-level Constants
+
+These values are exported from `chromologger` alongside `Logger`.
+
+| Constant | Value |
+|---|---|
+| `chromologger.__version__` | `'0.1.9'` |
+| `chromologger.__author__` | `'Tutos Rive'` |
+
+```python
+import chromologger
+
+print(chromologger.__version__)  # '0.1.9'
+print(chromologger.__author__)   # 'Tutos Rive'
+```
+
+---
+
+## Log Format Reference
+
+Every entry written by `Logger` follows one of these two formats:
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - message
+[ERROR][2025-01-06 19:52:08.636560] - Exception: ExceptionType - File: /path/to/file.py - ErrorLine: 35 - Message: error details
+```
+
+The timestamp is produced by `Dates.now_date()` which returns `datetime.now()` — local time with microsecond precision. See the [Dates](/api/dates) reference for details.

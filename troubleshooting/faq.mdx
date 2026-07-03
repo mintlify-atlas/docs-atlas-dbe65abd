@@ -1,0 +1,158 @@
+---
+title: "Chromologger Frequently Asked Questions"
+sidebarTitle: "FAQ"
+description: "Answers to common questions about Chromologger: log rotation, thread safety, log levels, context managers, and Python version support."
+---
+
+Answers to frequently asked questions about Chromologger's behavior, limitations, and roadmap.
+
+<AccordionGroup>
+  <Accordion title="Which Python versions are supported?">
+    Chromologger supports **Python 3.8 and later**, including 3.8, 3.10, 3.11, 3.12, 3.13, and 3.14 as declared in `pyproject.toml`.
+
+    <Warning>
+      Python 2 is **not** supported. The library relies on modern Python features including `pathlib`, `inspect`, and type hints that are unavailable in Python 2.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Does Chromologger support log rotation?">
+    Not yet. Automatic log rotation — by file size or by date — is on the roadmap for a future release.
+
+    **Workaround:** Use date-stamped filenames to create a new log file each day manually.
+
+    ```python
+    import os
+    from datetime import datetime
+    from chromologger import Logger
+
+    os.makedirs('./logs', exist_ok=True)
+    logger = Logger(f'./logs/app_{datetime.now().strftime("%Y%m%d")}.log')
+    ```
+
+    This produces files like `app_20250115.log`, giving you one file per day without any additional tooling.
+  </Accordion>
+
+  <Accordion title="Is Chromologger thread-safe?">
+    **No.** Chromologger does not implement any internal locking mechanism. Concurrent writes from multiple threads to the same `Logger` instance are not guaranteed to be safe and may produce corrupted or interleaved log entries.
+
+    **Safe alternative:** Create a separate `Logger` instance with a distinct file path per thread.
+
+    ```python
+    import threading
+    from chromologger import Logger
+    import os
+
+    os.makedirs('./logs', exist_ok=True)
+
+    def worker(thread_id):
+        logger = Logger(f'./logs/worker_{thread_id}.log')
+        logger.log(f'Thread {thread_id} started')
+        # ... work ...
+        logger.close()
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    ```
+  </Accordion>
+
+  <Accordion title="Does it support log levels like WARNING, DEBUG, or CRITICAL?">
+    Currently, only two levels are implemented:
+
+    | Method | Level written to file |
+    |---|---|
+    | `logger.log(msg)` | `[INFO]` |
+    | `logger.log_e(e)` | `[ERROR]` |
+
+    Support for `WARNING`, `DEBUG`, and `CRITICAL` levels is planned for a future release.
+
+    <Note>
+      In the meantime, you can prefix your messages manually — e.g. `logger.log('[WARNING] Disk usage above 90%')` — though this won't affect filtering or formatting behavior.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Can I use Chromologger as a context manager (with statement)?">
+    Not yet. `__enter__` / `__exit__` support is on the roadmap. Until then, use a `try/finally` block to guarantee that `close()` is always called, even if an exception occurs.
+
+    ```python
+    from chromologger import Logger
+    import os
+
+    os.makedirs('./logs', exist_ok=True)
+    logger = Logger('./logs/app.log')
+
+    try:
+        logger.log('Work started')
+        # ... your work ...
+        logger.log('Work finished')
+    finally:
+        logger.close()  # always runs, even on exception
+    ```
+
+    <Tip>
+      This pattern is equivalent to what a context manager would do, and it works today in all supported Python versions.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="What happens if I log to the same file from two Logger instances?">
+    Both `Logger` instances open the file in **append mode**, so entries written by each will be appended sequentially to the same file. No data is lost under sequential access patterns.
+
+    However, under **concurrent workloads** (multiple threads or processes writing simultaneously), entries may be interleaved in unexpected order because Chromologger does not coordinate between instances. For concurrent scenarios, prefer separate files per logger — see the thread-safety question above.
+  </Accordion>
+
+  <Accordion title="Where is the internal module log file?">
+    When Chromologger itself encounters an error — for example, if it cannot open the user-specified log file — it writes diagnostics to a `log.log` file located inside the **Chromologger package directory** (not your project directory).
+
+    The exact path is printed to the console by `chromolog` whenever an internal error occurs:
+
+    ```
+    ERROR  Revise el archivo "log" que se encuentra en esta ruta: /path/to/chromologger/log.log
+    ```
+
+    Check that file for detailed error messages, including exception type, source file, and line number.
+  </Accordion>
+
+  <Accordion title="How do I suppress the console output when calling log()?">
+    Console output via `chromolog.Print` is currently **always enabled**. Each call to `logger.log()` prints a message pointing to the log file path, and internal errors also print to the console.
+
+    A debug-mode flag to suppress this output is on the roadmap. At present, there is no official way to silence it.
+
+    <Note>
+      If noisy console output is blocking your workflow, consider wrapping calls in a redirect temporarily — but be aware this is a workaround, not a supported configuration.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Can I export logs to JSON or CSV?">
+    Not natively — structured export formats are a planned feature. As a workaround, serialize your data to a JSON string before passing it to `log()`.
+
+    ```python
+    import json
+    from chromologger import Logger
+    import os
+
+    os.makedirs('./logs', exist_ok=True)
+    logger = Logger('./logs/events.log')
+
+    logger.log(json.dumps({'event': 'purchase', 'amount': 99.99, 'user_id': 42}))
+    logger.close()
+    ```
+
+    This produces a log entry like:
+
+    ```
+    [INFO][2025-01-15 10:30:00.123456] - {"event": "purchase", "amount": 99.99, "user_id": 42}
+    ```
+
+    You can then parse these lines back to JSON for analysis or ingestion into a log aggregation tool.
+  </Accordion>
+
+  <Accordion title="Where can I report bugs or request features?">
+    The project is hosted on GitHub. You can:
+
+    - **Report a bug** — open an issue at [github.com/Dev2Forge/chromologger/issues](https://github.com/Dev2Forge/chromologger/issues)
+    - **Request a feature** — start a discussion in the [repository discussions](https://github.com/Dev2Forge/chromologger/discussions)
+    - **Contribute code** — submit a pull request at [github.com/Dev2Forge/chromologger/pulls](https://github.com/Dev2Forge/chromologger/pulls)
+  </Accordion>
+</AccordionGroup>

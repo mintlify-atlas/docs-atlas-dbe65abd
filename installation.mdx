@@ -1,0 +1,66 @@
+---
+title: "Install Chromologger in Your Python Project"
+sidebarTitle: "Installation"
+description: "Install Chromologger from PyPI using pip. Requires Python 3.8 or later. The chromolog dependency is installed automatically."
+---
+
+Chromologger is published on [PyPI](https://pypi.org/project/chromologger/) and can be installed with a single `pip` command. It requires **Python ≥ 3.8** and has one runtime dependency — `chromolog==0.2.5` — which is declared in the package's `pyproject.toml` and installed automatically alongside Chromologger.
+
+## Install from PyPI
+
+```bash
+pip install chromologger
+```
+
+That's all. `pip` resolves and installs `chromolog==0.2.5` as part of the same command.
+
+## Install the dependency explicitly
+
+If you ever need to install or re-install `chromolog` separately (for example, inside a Docker layer or to pin it in a requirements file), run:
+
+```bash
+pip install chromolog==0.2.5
+```
+
+<Note>
+  You do not normally need to run this command. `chromolog==0.2.5` is declared as a dependency in Chromologger's `pyproject.toml`, so `pip install chromologger` always pulls it in automatically.
+</Note>
+
+## Verify the installation
+
+Open a Python interpreter and confirm that the package and its metadata are available:
+
+```python
+import chromologger
+print(chromologger.__version__)   # e.g. 0.1.9
+print(chromologger.__author__)    # Tutos Rive
+```
+
+## Virtual environments
+
+It is strongly recommended to install Chromologger inside a virtual environment so it does not conflict with other projects on your system.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install chromologger
+```
+
+Once the virtual environment is active, all `pip install` and `import` commands are scoped to that environment.
+
+## Supported Python versions
+
+Chromologger is tested against the following CPython releases:
+
+| Version | Supported |
+|---------|-----------|
+| 3.8     | ✅        |
+| 3.10    | ✅        |
+| 3.11    | ✅        |
+| 3.12    | ✅        |
+| 3.13    | ✅        |
+| 3.14    | ✅        |
+
+<Tip>
+  Ready to write your first log entries? Head over to the [Quickstart](/quickstart) guide to create a `Logger`, capture an exception, and close the file cleanly in under five minutes.
+</Tip>

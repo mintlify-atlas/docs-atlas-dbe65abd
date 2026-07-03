@@ -1,0 +1,90 @@
+---
+title: "Log Python Exceptions with Full Traceback"
+sidebarTitle: "Exception Logging"
+description: "Use log_e() to record exceptions with type, source file path, line number, and error message automatically extracted from the traceback."
+---
+
+`log_e()` is Chromologger's dedicated method for exceptions. Instead of manually formatting an error message, you pass the caught exception directly and Chromologger extracts the exception class name, the source file where it was raised, the line number, and the full error message — all automatically, using Python's built-in `traceback` module.
+
+## How it works
+
+When you call `logger.log_e(e)`, Chromologger calls `traceback.extract_tb(e.__traceback__)` internally and picks the **last frame** of the stack — the location where the exception actually occurred. It then writes a single structured line at the `[ERROR]` level:
+
+```text
+[ERROR][2025-01-06 19:52:08.636560] - Exception: FileNotFoundError - File: /app/main.py - ErrorLine: 35 - Message: [Errno 2] No such file or directory: './config.json'
+```
+
+The fields in the output are:
+
+| Field | Description |
+|---|---|
+| `Exception` | The exception class name (e.g. `FileNotFoundError`, `ZeroDivisionError`) |
+| `File` | Absolute path to the Python file where the exception was raised |
+| `ErrorLine` | The line number within that file |
+| `Message` | The exception's string representation |
+
+## Basic exception logging
+
+```python
+from chromologger import Logger
+
+logger = Logger('./logs/errors.log')
+
+try:
+    result = 10 / 0
+except ZeroDivisionError as e:
+    logger.log_e(e)
+
+logger.close()
+```
+
+Resulting log line:
+
+```text
+[ERROR][2025-01-06 19:52:08.636560] - Exception: ZeroDivisionError - File: /app/main.py - ErrorLine: 5 - Message: division by zero
+```
+
+## File not found
+
+```python
+try:
+    with open('config.json', 'r') as f:
+        data = f.read()
+except FileNotFoundError as e:
+    logger.log_e(e)
+```
+
+```text
+[ERROR][2025-01-06 19:52:08.636560] - Exception: FileNotFoundError - File: /app/main.py - ErrorLine: 3 - Message: [Errno 2] No such file or directory: 'config.json'
+```
+
+## Catching broad exceptions
+
+You can combine `log_e()` with a follow-up `log()` call to record both the full traceback and a human-readable summary:
+
+```python
+try:
+    # risky operation
+    process_data()
+except Exception as e:
+    logger.log_e(e)
+    logger.log(f'Operation failed: {type(e).__name__}')
+```
+
+This produces two lines in the log file: one `[ERROR]` entry with the complete traceback detail, and one `[INFO]` entry acting as a plain-text summary that is easy to grep for.
+
+<Note>
+  `log_e()` extracts traceback information only when the exception has been
+  **raised** — that is, when it carries a `__traceback__` attribute. If you
+  construct an exception object manually without raising it (e.g.
+  `e = ValueError("oops")`) and pass it to `log_e()`, the traceback will be
+  empty and Chromologger will not be able to populate the `File` or `ErrorLine`
+  fields. Always call `log_e()` from inside an `except` block.
+</Note>
+
+---
+
+Next steps:
+
+- [Multiple Loggers](/guides/multiple-loggers) — use separate log files for access, errors, and performance in the same application.
+- [Logger API Reference](/api/logger) — full method signatures and return values.

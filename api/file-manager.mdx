@@ -1,0 +1,160 @@
+---
+title: "FileManager Utility — Chromologger Internals"
+sidebarTitle: "FileManager"
+description: "Reference for FileManager, the internal static utility class that handles file opening, writing, and path resolution in Chromologger."
+---
+
+`FileManager` is an internal static utility class in `chromologger.utils.files_manager` that handles all file and path operations used by the `Logger`. It is not part of the public `__all__` export but may be useful for advanced use cases.
+
+## Import
+
+```python
+from chromologger.utils.files_manager import FileManager
+```
+
+<Note>
+  `FileManager` is an internal utility. The [`Logger`](/api/logger) class is the recommended public API for all logging operations — use `FileManager` directly only when you need low-level file or path helpers outside of normal logging workflows.
+</Note>
+
+---
+
+## Methods
+
+All methods on `FileManager` are `@staticmethod` — no instantiation is required.
+
+### `open_file(file_relative_path, mode='a', encoding='utf-8')`
+
+```python
+FileManager.open_file(
+    file_relative_path: str,
+    mode: str = 'a',
+    encoding: str = 'utf-8'
+) -> Union[TextIOWrapper, None]
+```
+
+Resolves `file_relative_path` to an absolute path via `get_abs_path()`, then opens the file with Python's built-in `open()`.
+
+<ParamField path="file_relative_path" type="str" required>
+  Path to the target file. May be relative or absolute — it is always resolved to absolute internally before opening.
+</ParamField>
+
+<ParamField path="mode" type="str" default="'a'">
+  File open mode passed directly to `open()`. Defaults to append mode (`'a'`), matching the typical use-case of appending log lines.
+</ParamField>
+
+<ParamField path="encoding" type="str" default="'utf-8'">
+  Character encoding passed to `open()`. Defaults to UTF-8.
+</ParamField>
+
+<ResponseField name="return" type="TextIOWrapper">
+  The open file object on success. Any exception raised during `open()` is re-raised to the caller — the method does not swallow errors silently.
+</ResponseField>
+
+---
+
+### `write_plain_text_file(file_path, message)`
+
+```python
+FileManager.write_plain_text_file(file_path: str, message: str) -> None
+```
+
+Opens `file_path` via `open_file()` in append mode, writes `str(message)` to it, then closes the file. Used internally by `Logger.__log()` to write entries to the module's own internal error log.
+
+<ParamField path="file_path" type="str" required>
+  Path to the file to write to. Resolved to absolute by the underlying `open_file()` call.
+</ParamField>
+
+<ParamField path="message" type="str" required>
+  The content to write. Converted to `str` via `str(message)` before writing, so any Python object may be passed.
+</ParamField>
+
+<Note>
+  Any exception raised during file opening or writing is re-raised to the caller. Unlike `Logger.log()`, this method does not apply a timestamp or log-level prefix — the caller is responsible for formatting the string.
+</Note>
+
+---
+
+### `get_abs_path(relative_path)`
+
+```python
+FileManager.get_abs_path(relative_path: str) -> str
+```
+
+Returns the fully resolved absolute path of `relative_path` as a string, using `pathlib.Path(relative_path).resolve().absolute()`.
+
+<ParamField path="relative_path" type="str" required>
+  The path to resolve. Relative paths are resolved against the current working directory; absolute paths pass through unchanged.
+</ParamField>
+
+<ResponseField name="return" type="str">
+  The absolute, resolved path string (no trailing separator, symlinks resolved).
+</ResponseField>
+
+**Example**
+
+```python
+abs_path = FileManager.get_abs_path('./logs/app.log')
+# e.g. '/home/user/project/logs/app.log'
+```
+
+---
+
+### `get_abs_dir(relative_path)`
+
+```python
+FileManager.get_abs_dir(relative_path: str) -> str
+```
+
+Returns the absolute path of the **parent directory** of `relative_path`. Internally calls `pathlib.Path(relative_path).resolve().absolute().parent`.
+
+Used by `Logger.__init__()` to determine `self.caller_script` — the directory of the script that created the logger.
+
+<ParamField path="relative_path" type="str" required>
+  A path to any file or directory. The method resolves it and returns the parent directory, not the path itself.
+</ParamField>
+
+<ResponseField name="return" type="str">
+  Absolute path of the parent directory as a string.
+</ResponseField>
+
+**Example**
+
+```python
+parent_dir = FileManager.get_abs_dir('/home/user/project/logs/app.log')
+# '/home/user/project/logs'
+
+script_dir = FileManager.get_abs_dir(__file__)
+# Absolute directory containing the current script
+```
+
+---
+
+### `join_paths(base_path, *others_paths)`
+
+```python
+FileManager.join_paths(base_path: str, *others_paths: str) -> str
+```
+
+Joins `base_path` with one or more additional path components using `pathlib.Path.joinpath()`, then resolves the combined path to an absolute string.
+
+<ParamField path="base_path" type="str" required>
+  The root portion of the path. Resolved to absolute before joining.
+</ParamField>
+
+<ParamField path="*others_paths" type="str" required>
+  One or more path components to append to `base_path`. Passed directly to `pathlib.Path.joinpath()`.
+</ParamField>
+
+<ResponseField name="return" type="str">
+  The fully resolved, absolute joined path as a string.
+</ResponseField>
+
+**Example**
+
+```python
+full_path = FileManager.join_paths('/var/log', 'myapp', 'errors.log')
+# '/var/log/myapp/errors.log'
+
+module_log = FileManager.join_paths(current_path, 'log.log')
+# e.g. '/home/user/.../chromologger/log.log'
+```

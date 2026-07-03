@@ -1,47 +1,134 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Chromologger in 5 Minutes"
+sidebarTitle: "Quickstart"
+description: "Create your first Chromologger Logger, write INFO entries, capture exceptions with full traceback, and close the log file cleanly."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+This page walks through the complete basic workflow for using Chromologger: install the package, create a `Logger` instance, write informational log entries, capture exceptions with full traceback detail, and close the log file to flush and release resources. By the end you will have a working script and a clear picture of what ends up in your log file.
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Install Chromologger">
+    Install the package from PyPI. The `chromolog==0.2.5` dependency is pulled in automatically.
 
     ```bash
-    npm install your-package
+    pip install chromologger
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
+  <Step title="Import and create a Logger">
+    Import the `Logger` class and create an instance. You can use the zero-config default or supply an explicit path.
+
+    **Default — places `log.log` in the same directory as the calling script:**
+
+    ```python
+    from chromologger import Logger
+
+    logger = Logger()
+    ```
+
+    **Custom path — relative or absolute:**
+
+    ```python
+    from chromologger import Logger
+    import os
+
+    os.makedirs('./logs', exist_ok=True)
+    logger = Logger('./logs/app.log')
+    ```
+
+    <Note>
+      If the directory in your path does not already exist, Chromologger will raise a `FileNotFoundError` and log it internally. Always create the target directory with `os.makedirs(..., exist_ok=True)` before passing a nested path to `Logger`.
+    </Note>
+  </Step>
+
+  <Step title="Log an info message">
+    Call `logger.log(msg)` with any value. Chromologger converts it to a string, prepends an `[INFO]` level tag and a microsecond-precision timestamp, and appends the line to the log file.
+
+    ```python
+    logger.log('Application started')
+    ```
+
+    The line written to the file looks like:
+
+    ```text
+    [INFO][2025-01-06 19:52:08.636560] - Application started
     ```
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
+  <Step title="Log an exception">
+    Wrap risky code in a `try/except` block and pass the caught exception to `logger.log_e(e)`. Chromologger automatically extracts the exception type, source file, line number, and message from the live traceback.
+
+    ```python
+    try:
+        result = 10 / 0
+    except Exception as e:
+        logger.log_e(e)
     ```
+
+    The line written to the file looks like:
+
+    ```text
+    [ERROR][2025-01-06 19:52:08.636560] - Exception: ZeroDivisionError - File: /app/app.py - ErrorLine: 9 - Message: division by zero
+    ```
+  </Step>
+
+  <Step title="Close the logger">
+    Call `logger.close()` when you are done. It flushes and closes the underlying file handle and returns `True` on success.
+
+    ```python
+    result = logger.close()
+    print(result)   # True
+    ```
+
+    Always close the logger before your program exits to ensure all buffered data is written to disk.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Complete working script
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+Putting all the steps together:
+
+```python app.py
+from chromologger import Logger
+import os
+
+os.makedirs('./logs', exist_ok=True)
+logger = Logger('./logs/app.log')
+
+logger.log('Application started')
+
+try:
+    result = 10 / 0
+except Exception as e:
+    logger.log_e(e)
+
+logger.log('Shutting down')
+logger.close()
+```
+
+## What's in the log file
+
+After running the script above, `./logs/app.log` contains:
+
+```text
+[INFO][2025-01-06 19:52:08.636560] - Application started
+[ERROR][2025-01-06 19:52:08.636560] - Exception: ZeroDivisionError - File: /app/app.py - ErrorLine: 9 - Message: division by zero
+[INFO][2025-01-06 19:52:08.636561] - Shutting down
+```
+
+Because Chromologger always opens files in **append mode**, re-running the script adds new entries below the existing ones — nothing is ever overwritten.
+
+<Note>
+  In addition to writing to the log file, Chromologger prints colorized messages to your terminal via `chromolog` each time `log()` is called. The console output includes the full path of the active log file so you always know where to find your records, even across multiple Logger instances.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card icon="notebook" title="Basic logging guide" href="/guides/basic-logging">
+    Explore logging patterns, multiple Logger instances, and organizing log files by date or component.
+  </Card>
+  <Card icon="brackets-curly" title="Logger API reference" href="/api/logger">
+    Full reference for the `Logger` constructor and all public methods: `log()`, `log_e()`, and `close()`.
+  </Card>
+</CardGroup>
